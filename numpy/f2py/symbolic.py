@@ -1350,6 +1350,7 @@ class _FromStringWorker:
             assert context == 'expr', context
             oper, expr1, expr2 = restore(m.groups())
             oper = self.process(oper)
+            #oper = as_symbol(self.finalize_string(oper))
             expr1 = self.process(expr1)
             expr2 = self.process(expr2)
             return as_ternary(oper, expr1, expr2)

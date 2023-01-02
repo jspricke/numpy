@@ -17,7 +17,7 @@ Pearu Peterson
 import sys
 import copy
 
-from . import __version__
+import __version__
 
 f2py_version = __version__.version
 errmess = sys.stderr.write

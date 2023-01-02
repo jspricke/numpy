@@ -1,0 +1,69 @@
+subroutine sgebal(scale,permute,n,a,m,lo,hi,pivscale,info)
+    !
+    ! ba,lo,hi,pivscale,info = gebal(a,scale=0,permute=0,overwrite_a=0)
+    ! Balance general matrix a.
+    ! hi,lo are such that ba[i][j]==0 if i>j and j=0...lo-1 or i=hi+1..n-1
+    ! pivscale([0:lo], [lo:hi+1], [hi:n+1]) = (p1,d,p2) where (p1,p2)[j] is
+    ! the index of the row and column interchanged with row and column j.
+    ! d[j] is the scaling factor applied to row and column j.
+    ! The order in which the interchanges are made is n-1 to hi+1, then 0 to lo-1.
+    !
+    ! P * A * P = [[T1,X,Y],[0,B,Z],[0,0,T2]]
+    ! BA = [[T1,X*D,Y],[0,inv(D)*B*D,ind(D)*Z],[0,0,T2]]
+    ! where D = diag(d), T1,T2 are upper triangular matrices.
+    ! lo,hi mark the starting and ending columns of submatrix B.
+
+    callstatement { (*f2py_func)((permute?(scale?"B":"P"):(scale?"S":"N")),&n,a,&m,&lo,&hi,pivscale,&info); hi--; lo--; }
+    callprotoargument char*,F_INT*,float*,F_INT*,F_INT*,F_INT*,float*,F_INT*
+    integer intent(in),optional :: permute = 0
+    integer intent(in),optional :: scale = 0
+    integer intent(hide),depend(a,n) :: m = shape(a,0)
+    integer intent(hide),depend(a) :: n = shape(a,1)
+    check(m>=n) m
+    integer intent(out) :: hi,lo
+    real dimension(n),intent(out),depend(n) :: pivscale
+    real dimension(m,n),intent(in,out,copy,out=ba) :: a
+    integer intent(out) :: info
+
+end subroutine sgebal
+
+
+
+subroutine ssyevr(compute_v,range,lower,n,a,lda,vl,vu,il,iu,abstol,w,z,m,ldz,isuppz,work,lwork,iwork,liwork,info)
+    ! Standard Symmetric/HermitianEigenvalue Problem
+    ! Real - Single precision / Double precision
+    !
+    ! if jobz = 'N' there are no eigvecs hence 0x0 'z' returned
+    ! if jobz = 'V' and range = 'A', z is (nxn)
+    ! if jobz = 'V' and range = 'V', z is (nxn) since returned number of eigs is unknown beforehand
+    ! if jobz = 'V' and range = 'I', z is (nx(iu-il+1))
+
+    callstatement (*f2py_func)((compute_v?"V":"N"),range,(lower?"L":"U"),&n,a,&lda,&vl,&vu,&il,&iu,&abstol,&m,w,z,&ldz,isuppz,work,&lwork,iwork,&liwork,&info)
+    callprotoargument char*,char*,char*,F_INT*,float*,F_INT*,float*,float*,F_INT*,F_INT*,float*,F_INT*,float*,float*,F_INT*,F_INT*,float*,F_INT*,F_INT*,F_INT*,F_INT*
+
+    real intent(in,copy,aligned8),check(shape(a,0)==shape(a,1)),dimension(n,n) :: a
+    integer optional,intent(in),check(compute_v==1||compute_v==0):: compute_v = 1
+    character optional,intent(in),check(*range=='A'||*range=='V' ||*range=='I') :: range='A'
+    integer optional,intent(in),check(lower==0||lower==1) :: lower = 0
+    integer optional,intent(in),check(il>=1&&il<=n),depend(n) :: il=1
+    integer optional,intent(in),check(n>=iu&&iu>=il),depend(n,il) :: iu=n
+    real optional,intent(in) :: vl=0.0
+    real optional,intent(in),check(vu>=vl),depend(vl) :: vu=1.0
+    real intent(in) :: abstol=0.0
+    integer optional,intent(in),depend(n),check(lwork>=max(1,26*n)||lwork==-1) :: lwork=max(26*n,1)
+    integer optional,intent(in),depend(n),check(liwork>=max(1,10*n)||liwork==-1):: liwork= max(1,10*n)
+
+    integer intent(hide),depend(a) :: n=shape(a,0)
+    integer intent(hide),depend(n) :: lda=max(1,n)
+    integer intent(hide),depend(z) :: ldz=max(1,shape(z,0))
+    real  intent(hide),dimension(lwork),depend(lwork) :: work
+    integer intent(hide),dimension(liwork),depend(liwork) :: iwork
+
+    real intent(out),dimension(n),depend(n) :: w
+    real intent(out),dimension((compute_v?MAX(0,n):0),(compute_v?(*range=='I'?iu-il+1:MAX(1,n)):0)),depend(n,compute_v,range,iu,il) :: z
+    integer intent(out) :: m
+    ! Only returned if range=='A' or range=='I' and il, iu = 1, n
+    integer intent(out),dimension((compute_v?(2*(*range=='A'||(*range=='I' && iu-il+1==n)?n:0)):0)),depend(n,iu,il,compute_v,range) :: isuppz
+    integer intent(out) :: info
+
+end subroutine ssyevr
